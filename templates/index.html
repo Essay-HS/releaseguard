@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>ReleaseGuard</title><link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<main>
+  <header><div><p class="eyebrow">DEPLOYMENT OPERATIONS</p><h1>ReleaseGuard</h1><p>Build health and incident response, in one place.</p></div><span class="live">● MONITORING</span></header>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}<div class="notice {{ category }}" role="status"><strong>What happened:</strong> {{ message }}</div>{% endfor %}
+  {% endwith %}
+  {% if demo_enabled %}
+  <section class="panel demo-panel">
+    <div class="panel-title"><div><p class="step">INTERACTIVE PROTOTYPE</p><h2>Try the ReleaseGuard workflow</h2></div><span>These controls simulate Jenkins locally</span></div>
+    <p class="explanation">Start with a successful build, then create a failure and acknowledge the incident it produces. Each button sends a request to Flask and changes the SQLite data shown below.</p>
+    <div class="demo-actions">
+      <form method="post" action="{{ url_for('main.demo_build', status='success') }}"><button class="button primary" type="submit"><span>1</span> Simulate successful build</button><small>Saves a passing build with 18 tests.</small></form>
+      <form method="post" action="{{ url_for('main.demo_build', status='failed') }}"><button class="button danger" type="submit"><span>2</span> Simulate failed build</button><small>Saves a failure and opens an incident.</small></form>
+      <form method="post" action="{{ url_for('main.demo_health') }}"><button class="button secondary" type="submit">Run health check</button><small>Checks Flask and the database.</small></form>
+      <form method="post" action="{{ url_for('main.demo_reset') }}" onsubmit="return confirm('Clear all local build and incident records?')"><button class="button ghost" type="submit">Reset demo</button><small>Clears local prototype records.</small></form>
+    </div>
+  </section>
+  {% endif %}
+  <section class="stats">
+    <article><span>Latest build</span><strong>{% if builds %}#{{ builds[0].build_number }}{% else %}—{% endif %}</strong></article>
+    <article><span>Build status</span><strong class="{{ builds[0].status|lower if builds else '' }}">{{ builds[0].status if builds else 'NO DATA' }}</strong></article>
+    <article><span>Open incidents</span><strong>{{ incidents|selectattr('status', 'equalto', 'open')|list|length }}</strong></article>
+  </section>
+  <section class="panel"><div class="panel-title"><h2>Recent builds</h2><a href="/api/builds" target="_blank" rel="noopener" title="Open the raw API in a new tab">View API ↗</a></div>
+    <div class="table-wrap"><table><thead><tr><th>Build</th><th>Status</th><th>Branch</th><th>Commit</th><th>Tests</th><th>Time</th></tr></thead><tbody>
+    {% for build in builds %}<tr><td>#{{ build.build_number }}</td><td><span class="badge {{ build.status|lower }}">{{ build.status }}</span></td><td>{{ build.branch }}</td><td><code>{{ build.commit_id[:8] }}</code></td><td>{{ build.passed_tests }} passed · {{ build.failed_tests }} failed</td><td>{{ build.created_at }}</td></tr>{% else %}<tr><td colspan="6" class="empty">No builds yet. Use “Simulate successful build” above to create your first one.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+  <section class="panel"><div class="panel-title"><h2>Incident queue</h2><span>{{ incidents|length }} recent</span></div>
+    {% for incident in incidents %}<div class="incident"><span class="severity {{ incident.severity }}"></span><div class="incident-copy"><strong>#{{ incident.id }} · {{ incident.summary }}</strong><p>{{ incident.status|title }} · {{ incident.created_at }}{% if incident.acknowledged_by %} · by {{ incident.acknowledged_by }}{% endif %}</p></div>{% if demo_enabled and incident.status == 'open' %}<form method="post" action="{{ url_for('main.demo_acknowledge', incident_id=incident.id) }}"><button class="button compact" type="submit">Acknowledge</button></form>{% endif %}</div>{% else %}<p class="empty">No incidents. Simulate a failed build to see incident handling.</p>{% endfor %}
+  </section>
+</main></body></html>
