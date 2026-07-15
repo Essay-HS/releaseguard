@@ -1,12 +1,28 @@
 import os
 
 
-def create_build_message(build_number, status, passed_tests=0, failed_tests=0, build_url=""):
+def create_build_message(
+    build_number,
+    status,
+    passed_tests=0,
+    failed_tests=0,
+    build_url="",
+):
     status = status.upper()
+
     if status == "SUCCESS":
-        text = f"ReleaseGuard: Build #{build_number} passed. {passed_tests} tests succeeded."
+        test_word = "test" if int(passed_tests) == 1 else "tests"
+        text = (
+            f"ReleaseGuard: Build #{build_number} passed. "
+            f"{passed_tests} {test_word} succeeded."
+        )
     else:
-        text = f"ReleaseGuard ALERT: Build #{build_number} {status}. {failed_tests} tests failed."
+        test_word = "test" if int(failed_tests) == 1 else "tests"
+        text = (
+            f"ReleaseGuard ALERT: Build #{build_number} {status}. "
+            f"{failed_tests} {test_word} failed."
+        )
+
     return f"{text} Jenkins: {build_url}" if build_url else text
 
 
