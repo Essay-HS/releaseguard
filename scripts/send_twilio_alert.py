@@ -14,15 +14,17 @@ def main():
     parser.add_argument("status", choices=["SUCCESS", "FAILED", "UNSTABLE", "ABORTED"])
     args = parser.parse_args()
     message = create_build_message(os.getenv("BUILD_NUMBER", "unknown"), args.status, os.getenv("PASSED_TESTS", 0), os.getenv("FAILED_TESTS", 0), os.getenv("BUILD_URL", ""))
-    message_to_send = message
-    if os.getenv("TWILIO_TRIAL_MODE", "false").lower() == "true":
-     message_to_send = "sms_internal_alerts"
-    if os.getenv("TWILIO_DRY_RUN", "false").lower() == "true":
-        print(message_to_send)
-    else:
-        sent = send_sms(message_to_send)
-        print(f"Sent Twilio message {sent.sid}")
+    trial_mode = os.getenv("TWILIO_TRIAL_MODE", "false").lower() == "true"
 
+    message_to_send = select_message_for_twilio(
+        normal_message=message,
+        trial_mode=trial_mode,
+    )
 
+def select_message_for_twilio(normal_message, trial_mode):
+    if trial_mode:
+        return "sms_internal_alerts"
+
+    return normal_message
 if __name__ == "__main__":
     main()
